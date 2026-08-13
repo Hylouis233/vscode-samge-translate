@@ -2,6 +2,9 @@
 
 [English Document](README-en.md) | [Github](https://github.com/Samge0/vscode-samge-translate) <br>
 
+
+> 🌐 **[在线宣传页](https://samge0.github.io/vscode-samge-translate/)** — 可视化了解功能特性与工作流程
+
 VSCode Samge Translate 是一个基于VSCode的`翻译插件`，提供了从`英文到中文`、从`中文到英文`的翻译功能，以及`中文转变量名`功能支持多规则变量名（`camelCase、capitalCase、constantCase、dotCase、headerCase、noCase、paramCase、pascalCase、pathCase、snakeCase`）转换操作。使用百度/其他`翻译引擎API`来实现准确的翻译结果。<br>
 
 当前支持的翻译引擎包括：`百度`、`阿里`、`腾讯`、`火山`、`有道`、`DeepL`。<br>

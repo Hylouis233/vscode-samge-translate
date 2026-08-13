@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VSCode Samge Translate - 翻译助手插件</title>
+    <link rel="icon" type="image/png" href="icon.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            400: '#d4e8f0',
+                            500: '#b9dbe9',
+                            600: '#9fcddf',
+                        },
+                        neutral: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            800: '#475569',
+                            900: '#334155',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Noto Sans SC"', '"Inter"', '"Manrope"', 'sans-serif'],
+                        serif: ['"Noto Serif SC"', 'serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px rgba(185, 219, 233, 0.15)',
+                        'glass': '0 8px 32px rgba(185, 219, 233, 0.12)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', 'Inter', 'Manrope', sans-serif;
+            line-height: 1.6;
+            color: #1e293b;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(185, 219, 233, 0.3);
+            border-radius: 16px;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #9fcddf 0%, #b9dbe9 50%, #d4e8f0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-gradient {
+            background: linear-gradient(135deg, rgba(185, 219, 233, 0.1) 0%, rgba(159, 205, 223, 0.05) 100%);
+        }
+
+        .icon-gradient {
+            background: linear-gradient(135deg, #b9dbe9 0%, #9fcddf 100%);
+        }
+
+        .max-width-constrained {
+            max-width: 65ch;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #b9dbe9;
+            border-radius: 4px;
+        }
+
+        /* FAQ styles */
+        details {
+            border: 1px solid rgba(185, 219, 233, 0.3);
+            border-radius: 12px;
+            margin-bottom: 8px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(5px);
+        }
+
+        details summary {
+            padding: 16px 20px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #334155;
+            background: rgba(255, 255, 255, 0.8);
+            transition: background 0.2s;
+        }
+
+        details summary:hover {
+            background: rgba(185, 219, 233, 0.1);
+        }
+
+        details[open] summary {
+            border-bottom: 1px solid rgba(185, 219, 233, 0.2);
+        }
+
+        details p {
+            padding: 16px 20px;
+            color: #475569;
+            line-height: 1.7;
+        }
+
+        .keyboard-key {
+            display: inline-block;
+            padding: 2px 6px;
+            background: rgba(185, 219, 233, 0.2);
+            border: 1px solid rgba(185, 219, 233, 0.4);
+            border-radius: 4px;
+            font-family: 'Manrope', monospace;
+            font-size: 0.9em;
+            color: #334155;
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 glass-card mx-4 mt-4 px-6 py-4 shadow-soft">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <img src="icon.png" alt="VSCode Samge Translate" class="w-9 h-9 rounded-lg">
+                <span class="text-xl font-semibold text-neutral-900">VSCode Samge Translate</span>
+            </div>
+            <div class="hidden md:flex items-center space-x-8">
+                <a href="#features" class="text-neutral-800 hover:text-brand-500 transition-colors">功能特性</a>
+                <a href="#how-it-works" class="text-neutral-800 hover:text-brand-500 transition-colors">工作原理</a>
+                <a href="#faq" class="text-neutral-800 hover:text-brand-500 transition-colors">常见问题</a>
+                <a href="https://github.com/Samge0/vscode-samge-translate" target="_blank" class="flex items-center space-x-2 text-neutral-800 hover:text-brand-500 transition-colors">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                    <span>GitHub</span>
+                </a>
+            </div>
+            <a href="https://marketplace.visualstudio.com/items?itemName=Samge0.vscode-samge-translate" target="_blank" class="icon-gradient text-white px-6 py-2.5 rounded-lg font-medium hover:shadow-glass transition-shadow">
+                安装插件
+            </a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="min-h-screen flex items-center justify-center pt-32 pb-20 px-4">
+        <div class="max-w-6xl mx-auto text-center">
+            <div class="inline-block mb-6 px-4 py-2 rounded-full bg-gradient-to-r from-brand-500/20 to-brand-600/20 border border-brand-500/30">
+                <span class="text-white font-medium">🚀 强大的 VSCode 翻译助手</span>
+            </div>
+
+            <h1 class="text-5xl md:text-7xl font-bold mb-6 gradient-text leading-tight">
+                VSCode Samge Translate<br>
+                <span class="text-4xl md:text-5xl">翻译助手插件</span>
+            </h1>
+
+            <p class="text-xl md:text-2xl text-neutral-700 max-width-constrained mx-auto mb-12 leading-relaxed">
+                基于 VSCode 的专业翻译插件，支持英中互译、中文转变量名，集成百度、阿里、腾讯、火山、有道、DeepL 等多种翻译引擎。
+            </p>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a href="https://marketplace.visualstudio.com/items?itemName=Samge0.vscode-samge-translate" target="_blank" class="icon-gradient text-white px-8 py-4 rounded-xl font-semibold text-lg hover:shadow-glass transition-shadow w-full sm:w-auto">
+                    🎯 免费安装使用
+                </a>
+                <a href="https://github.com/Samge0/vscode-samge-translate" target="_blank" class="glass-card text-neutral-800 px-8 py-4 rounded-xl font-semibold text-lg hover:shadow-soft transition-all w-full sm:w-auto flex items-center justify-center space-x-2">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                    <span>查看源码</span>
+                </a>
+            </div>
+
+            <!-- Stats -->
+            <div class="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8">
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-white mb-2">6+</div>
+                    <div class="text-neutral-600">翻译引擎</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-white mb-2">10+</div>
+                    <div class="text-neutral-600">命名格式</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-white mb-2">4</div>
+                    <div class="text-neutral-600">展示方式</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-white mb-2">MIT</div>
+                    <div class="text-neutral-600">开源许可</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-20 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl md:text-5xl font-bold text-neutral-900 mb-4">核心功能</h2>
+                <p class="text-xl text-neutral-600 max-width-constrained mx-auto">
+                    功能齐全的翻译助手，满足你的一切翻译需求
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="glass-card p-8 hover:shadow-soft transition-shadow">
+                    <div class="icon-gradient w-14 h-14 rounded-xl flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-neutral-900 mb-3">英文翻译成中文</h3>
+                    <p class="text-neutral-600 leading-relaxed">一键将选中的英文文本翻译成中文，支持多种展示方式，让代码阅读更加轻松。</p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="glass-card p-8 hover:shadow-soft transition-shadow">
+                    <div class="icon-gradient w-14 h-14 rounded-xl flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-neutral-900 mb-3">自动替换功能</h3>
+                    <p class="text-neutral-600 leading-relaxed">翻译后自动替换原文本，支持英译中、中译英的自动替换，提高工作效率。</p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="glass-card p-8 hover:shadow-soft transition-shadow">
+                    <div class="icon-gradient w-14 h-14 rounded-xl flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-neutral-900 mb-3">中文转变量名</h3>
+                    <p class="text-neutral-600 leading-relaxed">支持将中文自动转换为多种编程命名格式，包括驼峰命名、下划线命名等10种格式。</p>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="glass-card p-8 hover:shadow-soft transition-shadow">
+                    <div class="icon-gradient w-14 h-14 rounded-xl flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-neutral-900 mb-3">多引擎支持</h3>
+                    <p class="text-neutral-600 leading-relaxed">集成百度、阿里、腾讯、火山、有道、DeepL 六大翻译引擎，确保翻译准确性和稳定性。</p>
+                </div>
+
+                <!-- Feature 5 -->
+                <div class="glass-card p-8 hover:shadow-soft transition-shadow">
+                    <div class="icon-gradient w-14 h-14 rounded-xl flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-neutral-900 mb-3">多种展示方式</h3>
+                    <p class="text-neutral-600 leading-relaxed">翻译结果可显示在选中文本后、OUTPUT面板、右下角提示框或鼠标悬停展示，任你选择。</p>
+                </div>
+
+                <!-- Feature 6 -->
+                <div class="glass-card p-8 hover:shadow-soft transition-shadow">
+                    <div class="icon-gradient w-14 h-14 rounded-xl flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-neutral-900 mb-3">灵活配置</h3>
+                    <p class="text-neutral-600 leading-relaxed">支持自定义快捷键、翻译引擎、显示方式等，完全按照你的工作习惯来配置。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How it Works Section -->
+    <section id="how-it-works" class="py-20 px-4 hero-gradient">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl md:text-5xl font-bold text-neutral-900 mb-4">工作流程</h2>
+                <p class="text-xl text-neutral-600 max-width-constrained mx-auto">
+                    简单三步，即可开启高效的翻译体验
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Step 1 -->
+                <div class="text-center">
+                    <div class="glass-card w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 icon-gradient">
+                        <span class="text-3xl font-bold text-white">1</span>
+                    </div>
+                    <h3 class="text-xl font-semibold text-neutral-900 mb-3">安装插件</h3>
+                    <p class="text-neutral-600 leading-relaxed">在 VSCode 扩展市场搜索 "VSCode Samge Translate" 并安装</p>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="text-center">
+                    <div class="glass-card w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 icon-gradient">
+                        <span class="text-3xl font-bold text-white">2</span>
+                    </div>
+                    <h3 class="text-xl font-semibold text-neutral-900 mb-3">配置引擎</h3>
+                    <p class="text-neutral-600 leading-relaxed">选择翻译引擎并配置 API 密钥，支持多个引擎自动缓存</p>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="text-center">
+                    <div class="glass-card w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 icon-gradient">
+                        <span class="text-3xl font-bold text-white">3</span>
+                    </div>
+                    <h3 class="text-xl font-semibold text-neutral-900 mb-3">开始翻译</h3>
+                    <p class="text-neutral-600 leading-relaxed">选中文本，使用快捷键或命令面板开始翻译</p>
+                </div>
+            </div>
+
+            <!-- Keyboard Shortcuts -->
+            <div class="mt-16 glass-card p-8">
+                <h3 class="text-2xl font-semibold text-neutral-900 mb-6 text-center">快捷键一览</h3>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="flex items-center justify-between p-4 bg-white/50 rounded-lg">
+                        <span class="text-neutral-700">英译中</span>
+                        <span class="keyboard-key">Alt + X</span>
+                    </div>
+                    <div class="flex items-center justify-between p-4 bg-white/50 rounded-lg">
+                        <span class="text-neutral-700">英译中并替换</span>
+                        <span class="keyboard-key">Ctrl + Shift + Alt + X</span>
+                    </div>
+                    <div class="flex items-center justify-between p-4 bg-white/50 rounded-lg">
+                        <span class="text-neutral-700">中译英</span>
+                        <span class="keyboard-key">Alt + Z</span>
+                    </div>
+                    <div class="flex items-center justify-between p-4 bg-white/50 rounded-lg">
+                        <span class="text-neutral-700">中译英并替换</span>
+                        <span class="keyboard-key">Ctrl + Shift + Alt + Z</span>
+                    </div>
+                    <div class="flex items-center justify-between p-4 bg-white/50 rounded-lg">
+                        <span class="text-neutral-700">中文转变量名</span>
+                        <span class="keyboard-key">Shift + Alt + W</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="py-20 px-4">
+        <div class="max-w-4xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl md:text-5xl font-bold text-neutral-900 mb-4">常见问题</h2>
+                <p class="text-xl text-neutral-600">
+                    关于插件使用的常见疑问解答
+                </p>
+            </div>
+
+            <div class="space-y-4">
+                <details>
+                    <summary>如何获取 appId 和 appSecret？</summary>
+                    <p>
+                        各大翻译平台提供不同额度的免费配额：<br>
+                        <strong>百度</strong>：5万免费字符/月（个人认证后可切换高级版：100w免费字符/月）<br>
+                        <strong>阿里</strong>：100万免费字符/月<br>
+                        <strong>腾讯</strong>：500万免费字符/月<br>
+                        <strong>火山</strong>：200万免费字符/月<br>
+                        <strong>有道</strong>：新账号有50元固定免费体验额度<br>
+                        <strong>DeepL</strong>：50万免费字符/月
+                    </p>
+                </details>
+
+                <details>
+                    <summary>当前支持哪些翻译引擎？</summary>
+                    <p>
+                        目前支持 6 个翻译引擎：<br>
+                        ✅ 百度<br>
+                        ✅ 阿里<br>
+                        ✅ 腾讯<br>
+                        ✅ 火山<br>
+                        ✅ 有道<br>
+                        ✅ DeepL
+                    </p>
+                </details>
+
+                <details>
+                    <summary>支持哪些翻译语言？</summary>
+                    <p>
+                        目前支持的语言对：<br>
+                        ✅ 英语<br>
+                        ✅ 中文
+                    </p>
+                </details>
+
+                <details>
+                    <summary>如何自定义快捷键和配置？</summary>
+                    <p>
+                        您可以通过以下步骤来编辑快捷键和配置项：<br><br>
+                        <strong>编辑快捷键</strong>：在 VSCode 中，通过 <code>文件 > 首选项 > 键盘快捷方式</code> 来设置您的快捷键（可搜索关键词"samge"快速定位相关配置项）。<br><br>
+                        <strong>编辑配置</strong>：在 VSCode 中，通过 <code>文件 > 首选项 > 设置 > 扩展 > Vscode Samge Translate Configuration</code> 来设置您的配置项（可搜索关键词"samge"快速定位相关配置项）。
+                    </p>
+                </details>
+
+                <details>
+                    <summary>插件收费吗？</summary>
+                    <p>
+                        完全免费！本插件遵循 MIT 许可证开源发布，翻译引擎的使用配额由各平台提供，大部分都有充足的免费额度。
+                    </p>
+                </details>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-20 px-4">
+        <div class="max-w-4xl mx-auto text-center">
+            <div class="glass-card p-12 md:p-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-neutral-900 mb-4">
+                    准备好提升翻译效率了吗？
+                </h2>
+                <p class="text-xl text-neutral-600 mb-8 max-width-constrained mx-auto">
+                    立即安装 VSCode Samge Translate，体验智能便捷的翻译功能
+                </p>
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <a href="https://marketplace.visualstudio.com/items?itemName=Samge0.vscode-samge-translate" target="_blank" class="icon-gradient text-white px-8 py-4 rounded-xl font-semibold text-lg hover:shadow-glass transition-shadow w-full sm:w-auto">
+                        🎯 免费安装
+                    </a>
+                    <a href="https://github.com/Samge0/vscode-samge-translate" target="_blank" class="glass-card text-neutral-800 px-8 py-4 rounded-xl font-semibold text-lg hover:shadow-soft transition-all w-full sm:w-auto flex items-center justify-center space-x-2">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                        <span>GitHub 仓库</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 px-4 border-t border-neutral-200 bg-white/50">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="flex items-center space-x-3">
+                    <img src="icon.png" alt="VSCode Samge Translate" class="w-8 h-8 rounded-lg">
+                    <span class="text-lg font-semibold text-neutral-900">VSCode Samge Translate</span>
+                </div>
+
+                <div class="flex items-center space-x-6">
+                    <a href="https://github.com/Samge0/vscode-samge-translate" target="_blank" class="flex items-center space-x-2 text-neutral-600 hover:text-brand-500 transition-colors">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                        <span>GitHub</span>
+                    </a>
+                    <a href="https://discord.com/invite/eRuSqve8CE" target="_blank" class="text-neutral-600 hover:text-brand-500 transition-colors">
+                        Discord
+                    </a>
+                </div>
+
+                <div class="text-neutral-500 text-sm">
+                    MIT License © 2024 VSCode Samge Translate
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Smooth scroll for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Add shadow to nav on scroll
+        window.addEventListener('scroll', () => {
+            const nav = document.querySelector('nav');
+            if (window.scrollY > 50) {
+                nav.classList.add('shadow-soft');
+            } else {
+                nav.classList.remove('shadow-soft');
+            }
+        });
+    </script>
+</body>
+</html>
